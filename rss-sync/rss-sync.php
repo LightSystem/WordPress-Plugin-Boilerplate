@@ -5,24 +5,21 @@
  * A foundation off of which to build well-documented WordPress plugins that
  * also follow WordPress Coding Standards and PHP best practices.
  *
- * @package   Plugin_Name
- * @author    Your Name <email@example.com>
+ * @package   RSS-Sync
+ * @author    João Horta Alves <joao.alves@log.pt>
  * @license   GPL-2.0+
- * @link      http://example.com
- * @copyright 2014 Your Name or Company Name
+ * @copyright 2014 João Horta Alves
  *
  * @wordpress-plugin
- * Plugin Name:       @TODO
- * Plugin URI:        @TODO
- * Description:       @TODO
- * Version:           1.0.0
- * Author:            @TODO
- * Author URI:        @TODO
- * Text Domain:       plugin-name-locale
+ * Plugin Name:       RSS Sync
+ * Description:       Synchronize posts with external RSS feed.
+ * Version:           0.2.0
+ * Author:            Horta
+ * Text Domain:       rss-sync
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * Domain Path:       /languages
- * GitHub Plugin URI: https://github.com/<owner>/<repo>
+ * GitHub Plugin URI: https://github.com/LightSystem/WordPress-Plugin-RSS-Sync
  */
 
 // If this file is called directly, abort.
@@ -40,7 +37,7 @@ if ( ! defined( 'WPINC' ) ) {
  * - replace `class-plugin-name.php` with the name of the plugin's class file
  *
  */
-require_once( plugin_dir_path( __FILE__ ) . 'public/class-plugin-name.php' );
+require_once( plugin_dir_path( __FILE__ ) . 'public/class-rss-sync.php' );
 
 /*
  * Register hooks that are fired when the plugin is activated or deactivated.
@@ -51,8 +48,8 @@ require_once( plugin_dir_path( __FILE__ ) . 'public/class-plugin-name.php' );
  * - replace Plugin_Name with the name of the class defined in
  *   `class-plugin-name.php`
  */
-register_activation_hook( __FILE__, array( 'Plugin_Name', 'activate' ) );
-register_deactivation_hook( __FILE__, array( 'Plugin_Name', 'deactivate' ) );
+register_activation_hook( __FILE__, array( 'RSS_Sync', 'activate' ) );
+register_deactivation_hook( __FILE__, array( 'RSS_Sync', 'deactivate' ) );
 
 /*
  * @TODO:
@@ -60,7 +57,7 @@ register_deactivation_hook( __FILE__, array( 'Plugin_Name', 'deactivate' ) );
  * - replace Plugin_Name with the name of the class defined in
  *   `class-plugin-name.php`
  */
-add_action( 'plugins_loaded', array( 'Plugin_Name', 'get_instance' ) );
+add_action( 'plugins_loaded', array( 'RSS_Sync', 'get_instance' ) );
 
 /*----------------------------------------------------------------------------*
  * Dashboard and Administrative Functionality

@@ -1,13 +1,14 @@
 <?php
 /**
- * Plugin Name.
+ * RSS Sync.
  *
- * @package   Plugin_Name
- * @author    Your Name <email@example.com>
+ * @package   RSS-Sync
+ * @author    João Horta Alves <joao.alves@log.pt>
  * @license   GPL-2.0+
- * @link      http://example.com
- * @copyright 2014 Your Name or Company Name
+ * @copyright 2014 João Horta Alves
  */
+
+include_once( ABSPATH . WPINC . '/feed.php' );
 
 /**
  * Plugin class. This class should ideally be used to work with the
@@ -19,18 +20,20 @@
  * @TODO: Rename this class to a proper name for your plugin.
  *
  * @package Plugin_Name
- * @author  Your Name <email@example.com>
+ * @author  João Horta Alves <joao.alves@log.pt>
  */
-class Plugin_Name {
+class RSS_Sync {
 
 	/**
 	 * Plugin version, used for cache-busting of style and script file references.
 	 *
-	 * @since   1.0.0
+	 * @since   0.2.0
 	 *
 	 * @var     string
 	 */
-	const VERSION = '1.0.0';
+	const VERSION = '0.2.0';
+
+	const RSS_ID_CUSTOM_FIELD = 'rss_id';
 
 	/**
 	 * @TODO - Rename "plugin-name" to the name your your plugin
@@ -42,16 +45,16 @@ class Plugin_Name {
 	 * of text. Its value should match the Text Domain file header in the main
 	 * plugin file.
 	 *
-	 * @since    1.0.0
+	 * @since    0.2.0
 	 *
 	 * @var      string
 	 */
-	protected $plugin_slug = 'plugin-name';
+	protected $plugin_slug = 'rss-sync';
 
 	/**
 	 * Instance of this class.
 	 *
-	 * @since    1.0.0
+	 * @since    0.2.0
 	 *
 	 * @var      object
 	 */
@@ -61,7 +64,7 @@ class Plugin_Name {
 	 * Initialize the plugin by setting localization and loading public scripts
 	 * and styles.
 	 *
-	 * @since     1.0.0
+	 * @since     0.2.0
 	 */
 	private function __construct() {
 
@@ -78,15 +81,15 @@ class Plugin_Name {
 		/* Define custom functionality.
 		 * Refer To http://codex.wordpress.org/Plugin_API#Hooks.2C_Actions_and_Filters
 		 */
-		add_action( '@TODO', array( $this, 'action_method_name' ) );
-		add_filter( '@TODO', array( $this, 'filter_method_name' ) );
+		add_action( 'rss_sync_daily_event', array( $this, 'fetch_rss_daily' ) );
+		//add_filter( '@TODO', array( $this, 'filter_method_name' ) );
 
 	}
 
 	/**
 	 * Return the plugin slug.
 	 *
-	 * @since    1.0.0
+	 * @since    0.2.0
 	 *
 	 * @return    Plugin slug variable.
 	 */
@@ -97,7 +100,7 @@ class Plugin_Name {
 	/**
 	 * Return an instance of this class.
 	 *
-	 * @since     1.0.0
+	 * @since     0.2.0
 	 *
 	 * @return    object    A single instance of this class.
 	 */
@@ -114,7 +117,7 @@ class Plugin_Name {
 	/**
 	 * Fired when the plugin is activated.
 	 *
-	 * @since    1.0.0
+	 * @since    0.2.0
 	 *
 	 * @param    boolean    $network_wide    True if WPMU superadmin uses
 	 *                                       "Network Activate" action, false if
@@ -151,7 +154,7 @@ class Plugin_Name {
 	/**
 	 * Fired when the plugin is deactivated.
 	 *
-	 * @since    1.0.0
+	 * @since    0.2.0
 	 *
 	 * @param    boolean    $network_wide    True if WPMU superadmin uses
 	 *                                       "Network Deactivate" action, false if
@@ -189,7 +192,7 @@ class Plugin_Name {
 	/**
 	 * Fired when a new site is activated with a WPMU environment.
 	 *
-	 * @since    1.0.0
+	 * @since    0.2.0
 	 *
 	 * @param    int    $blog_id    ID of the new blog.
 	 */
@@ -211,7 +214,7 @@ class Plugin_Name {
 	 * - not spam
 	 * - not deleted
 	 *
-	 * @since    1.0.0
+	 * @since    0.2.0
 	 *
 	 * @return   array|false    The blog ids, false if no matches.
 	 */
@@ -231,10 +234,12 @@ class Plugin_Name {
 	/**
 	 * Fired for each blog when the plugin is activated.
 	 *
-	 * @since    1.0.0
+	 * @since    0.2.0
 	 */
 	private static function single_activate() {
-		// @TODO: Define activation functionality here
+		
+		wp_schedule_event( time(), 'daily', 'rss_sync_daily_event' );
+
 	}
 
 	/**
@@ -243,7 +248,9 @@ class Plugin_Name {
 	 * @since    1.0.0
 	 */
 	private static function single_deactivate() {
-		// @TODO: Define deactivation functionality here
+		
+		wp_clear_scheduled_hook( 'rss_sync_daily_event' );
+
 	}
 
 	/**
@@ -286,10 +293,56 @@ class Plugin_Name {
 	 *        Actions:    http://codex.wordpress.org/Plugin_API#Actions
 	 *        Reference:  http://codex.wordpress.org/Plugin_API/Action_Reference
 	 *
-	 * @since    1.0.0
+	 * @since    0.2.0
 	 */
-	public function action_method_name() {
-		// @TODO: Define your action hook callback here
+	public function fetch_rss_daily() {
+		// Get a SimplePie feed object from the specified feed source.
+		$rss = fetch_feed( 'http://www.eurogamer.net/?format=rss' );
+
+		if ( ! is_wp_error( $rss ) ) : // Checks that the object is created correctly
+			$maxitems = $rss->get_item_quantity( 0 );
+
+			// Build an array of all the items, starting with element 0 (first element).
+			$rss_items = $rss->get_items( 0, $maxitems );
+		endif;
+
+		//Loop through each feed item and create a post with the associated information
+		foreach ( $rss_items as $item ) :
+
+			$item_id 		= $item->get_id(false);
+			$item_pub_date 	= date($item->get_date('Y-m-d H:i:s'));
+
+			$custom_field_query = new WP_Query(array( 'meta_key' => RSS_ID_CUSTOM_FIELD, 'meta_value' => $item_id ));
+
+			if($custom_field_query->have_posts()){
+				$post = $custom_field_query->next_post();
+
+				if (strtotime( $post->post_modified ) < strtotime( $item_pub_date )) {
+					$post->post_content 	= $item->get_description(false);
+					$post->post_title 		= $item->get_title();
+					$post->post_modified 	= $item_pub_date;
+
+					wp_update_post( $post );
+				}
+
+			} else {
+
+				$post = array(
+				  'post_content'   => $item->get_description(false), // The full text of the post.
+				  'post_title'     => $item->get_title(), // The title of your post.
+				  'post_status'    => 'publish',
+				  'post_date'      => $item_pub_date, // The time post was made.
+				  'post_category'  => array(39) // Default empty.
+				);
+
+				$inserted_post_id = wp_insert_post( $post );
+
+				if($inserted_post_id != 0){
+					update_post_meta($inserted_post_id, RSS_ID_CUSTOM_FIELD, $item_id);
+				}
+			}
+
+		endforeach;
 	}
 
 	/**
