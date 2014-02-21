@@ -81,7 +81,8 @@ class RSS_Sync {
 		/* Define custom functionality.
 		 * Refer To http://codex.wordpress.org/Plugin_API#Hooks.2C_Actions_and_Filters
 		 */
-		add_action( 'rss_sync_daily_event', array( $this, 'fetch_rss_daily' ) );
+		//add_action( 'rss_sync_daily_event', array( $this, 'fetch_rss_daily' ) );
+		add_action( 'init', array( $this, 'fetch_rss_daily' ) );
 		//add_filter( '@TODO', array( $this, 'filter_method_name' ) );
 
 	}
