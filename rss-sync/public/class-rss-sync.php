@@ -19,7 +19,7 @@ include_once( ABSPATH . WPINC . '/feed.php' );
  *
  * @TODO: Rename this class to a proper name for your plugin.
  *
- * @package Plugin_Name
+ * @package RSS-Sync
  * @author  João Horta Alves <joao.alves@log.pt>
  */
 class RSS_Sync {
@@ -81,7 +81,7 @@ class RSS_Sync {
 		/* Define custom functionality.
 		 * Refer To http://codex.wordpress.org/Plugin_API#Hooks.2C_Actions_and_Filters
 		 */
-		add_action( 'rss_sync_daily_event', array( $this, 'fetch_rss_daily' ) );
+		add_action( 'rss_sync_event', array( $this, 'rss_sync_fetch' ) );
 		//add_filter( '@TODO', array( $this, 'filter_method_name' ) );
 
 	}
@@ -238,18 +238,25 @@ class RSS_Sync {
 	 */
 	private static function single_activate() {
 		
-		wp_schedule_event( time(), 'daily', 'rss_sync_daily_event' );
+		$options = get_option( 'rss_sync' );
 
+		if($options)
+			$chosen_recurrence = $options['refresh'];
+
+		if($chosen_recurrence)
+			wp_schedule_event( time(), $chosen_recurrence, 'rss_sync_event' );
+		else
+			wp_schedule_event( time(), 'daily', 'rss_sync_event' );
 	}
 
 	/**
 	 * Fired for each blog when the plugin is deactivated.
 	 *
-	 * @since    1.0.0
+	 * @since    0.2.0
 	 */
 	private static function single_deactivate() {
 		
-		wp_clear_scheduled_hook( 'rss_sync_daily_event' );
+		wp_clear_scheduled_hook( 'rss_sync_event' );
 
 	}
 
@@ -287,17 +294,35 @@ class RSS_Sync {
 	}
 
 	/**
-	 * NOTE:  Actions are points in the execution of a page or process
-	 *        lifecycle that WordPress fires.
+	 * Does all the work of fetching specified RSS feeds, as well as create the associated posts.
 	 *
 	 *        Actions:    http://codex.wordpress.org/Plugin_API#Actions
 	 *        Reference:  http://codex.wordpress.org/Plugin_API/Action_Reference
 	 *
 	 * @since    0.2.0
 	 */
-	public function fetch_rss_daily() {
+	public function rss_sync_fetch() {
+
+		$options = get_option( 'rss_sync' );
+
+		$rss_feeds_to_fetch = explode("\n", $options['rss_feeds']);
+
+		if($rss_feeds_to_fetch){
+			foreach ($rss_feeds_to_fetch as $rss_feed) {
+				$this->handle_RSS_feed($rss_feed);
+			}
+		}
+	}
+
+	/**
+	* Fetch and process a single RSS feed.
+	*
+	* @since    0.3.0
+	*/
+	private function handle_RSS_feed($rss_feed){
+
 		// Get a SimplePie feed object from the specified feed source.
-		$rss = fetch_feed( 'http://www.eurogamer.net/?format=rss' );
+		$rss = fetch_feed( $rss_feed );
 
 		if ( ! is_wp_error( $rss ) ) : // Checks that the object is created correctly
 			$maxitems = $rss->get_item_quantity( 0 );
@@ -329,9 +354,9 @@ class RSS_Sync {
 
 				$post = array(
 				  'post_content'   => $item->get_description(false), // The full text of the post.
-				  'post_title'     => $item->get_title(), // The title of your post.
+				  'post_title'     => $item->get_title(), // The title of the post.
 				  'post_status'    => 'publish',
-				  'post_date'      => $item_pub_date, // The time post was made.
+				  'post_date'      => $item_pub_date, // The time the post was made.
 				  'post_category'  => array(39) // Default empty.
 				);
 

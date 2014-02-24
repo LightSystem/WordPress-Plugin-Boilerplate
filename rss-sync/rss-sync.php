@@ -13,7 +13,7 @@
  * @wordpress-plugin
  * Plugin Name:       RSS Sync
  * Description:       Synchronize posts with external RSS feed.
- * Version:           0.2.0
+ * Version:           0.3.0
  * Author:            Horta
  * Text Domain:       rss-sync
  * License:           GPL-2.0+
@@ -81,7 +81,7 @@ add_action( 'plugins_loaded', array( 'RSS_Sync', 'get_instance' ) );
  */
 if ( is_admin() && ( ! defined( 'DOING_AJAX' ) || ! DOING_AJAX ) ) {
 
-	require_once( plugin_dir_path( __FILE__ ) . 'admin/class-plugin-name-admin.php' );
-	add_action( 'plugins_loaded', array( 'Plugin_Name_Admin', 'get_instance' ) );
+	require_once( plugin_dir_path( __FILE__ ) . 'admin/class-rss-sync-admin.php' );
+	add_action( 'plugins_loaded', array( 'RSS_Sync_Admin', 'get_instance' ) );
 
 }
