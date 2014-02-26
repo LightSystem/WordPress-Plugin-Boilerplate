@@ -11,13 +11,12 @@
 include_once( ABSPATH . WPINC . '/feed.php' );
 
 /**
- * Plugin class. This class should ideally be used to work with the
+ * Plugin class. This class is used to work with the
  * public-facing side of the WordPress site.
  *
  * If you're interested in introducing administrative or dashboard
- * functionality, then refer to `class-plugin-name-admin.php`
+ * functionality, then refer to `class-rss-sync-admin.php`
  *
- * @TODO: Rename this class to a proper name for your plugin.
  *
  * @package RSS-Sync
  * @author  João Horta Alves <joao.alves@log.pt>
@@ -31,7 +30,7 @@ class RSS_Sync {
 	 *
 	 * @var     string
 	 */
-	const VERSION = '0.2.0';
+	const VERSION = '0.3.0';
 
 	const RSS_ID_CUSTOM_FIELD = 'rss_id';
 
@@ -337,6 +336,8 @@ class RSS_Sync {
 			$item_id 		= $item->get_id(false);
 			$item_pub_date 	= date($item->get_date('Y-m-d H:i:s'));
 
+			$item_categories = $item->get_categories();
+
 			$custom_field_query = new WP_Query(array( 'meta_key' => RSS_ID_CUSTOM_FIELD, 'meta_value' => $item_id ));
 
 			if($custom_field_query->have_posts()){
@@ -352,12 +353,38 @@ class RSS_Sync {
 
 			} else {
 
+				/*$post_category_IDs = array();
+
+				foreach ($item_categories as $category) {
+					
+					$cat_id = get_cat_ID($category->get_term());
+
+					if($cat_id != 0){
+						array_push($post_category_IDs, $cat_id);
+					} else {
+						$cat_id = wp_insert_term( $category->get_term(), 'category' );
+
+						array_push($post_category_IDs, $cat_id);
+					}
+
+				}*/
+
+				$post_category_tags = array();
+
+				foreach ($item_categories as $category) {
+					
+					$raw_tag = $category->get_term();
+
+					array_push($post_category_tags, str_replace(' ', '-', $raw_tag));
+
+				}
+
 				$post = array(
 				  'post_content'   => $item->get_description(false), // The full text of the post.
 				  'post_title'     => $item->get_title(), // The title of the post.
 				  'post_status'    => 'publish',
 				  'post_date'      => $item_pub_date, // The time the post was made.
-				  'post_category'  => array(39) // Default empty.
+				  'tags_input'	   => $post_category_tags
 				);
 
 				$inserted_post_id = wp_insert_post( $post );

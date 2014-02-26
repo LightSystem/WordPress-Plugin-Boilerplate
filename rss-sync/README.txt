@@ -86,12 +86,12 @@ directory take precedence. For example, `/assets/screenshot-1.png` would win ove
 
 == Changelog ==
 
-= 1.0 =
-* A change since the previous version.
-* Another change.
+= 0.3.0 =
+* Working version.
+* Added a configuration panel.
 
-= 0.5 =
-* List versions from most recent at top to oldest at bottom.
+= 0.2.0 =
+* Prototype.
 
 == Upgrade Notice ==
 
@@ -100,12 +100,6 @@ Upgrade notices describe the reason a user should upgrade.  No more than 300 cha
 
 = 0.5 =
 This version fixes a security related bug.  Upgrade immediately.
-
-== Arbitrary section ==
-
-You may provide arbitrary sections, in the same format as the ones above.  This may be of use for extremely complicated
-plugins where more information needs to be conveyed that doesn't fit into the categories of "description" or
-"installation."  Arbitrary sections will be shown below the built-in sections outlined above.
 
 == Updates ==
 
