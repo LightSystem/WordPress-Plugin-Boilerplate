@@ -30,7 +30,7 @@ class RSS_Sync {
 	 *
 	 * @var     string
 	 */
-	const VERSION = '0.3.0';
+	const VERSION = '0.4.0';
 
 	const RSS_ID_CUSTOM_FIELD = 'rss_id';
 
@@ -324,77 +324,91 @@ class RSS_Sync {
 		$rss = fetch_feed( $rss_feed );
 
 		if ( ! is_wp_error( $rss ) ) : // Checks that the object is created correctly
+			$channel_title = $rss->get_title();
+
 			$maxitems = $rss->get_item_quantity( 0 );
 
 			// Build an array of all the items, starting with element 0 (first element).
 			$rss_items = $rss->get_items( 0, $maxitems );
-		endif;
 
-		//Loop through each feed item and create a post with the associated information
-		foreach ( $rss_items as $item ) :
+			//Loop through each feed item and create a post with the associated information
+			foreach ( $rss_items as $item ) :
 
-			$item_id 		= $item->get_id(false);
-			$item_pub_date 	= date($item->get_date('Y-m-d H:i:s'));
+				$item_id 	   = $item->get_id(false);
+				$item_pub_date = date($item->get_date('Y-m-d H:i:s'));
 
-			$item_categories = $item->get_categories();
+				$post_cat_id 	 = $this->cat_id_by_name($channel_title);
+				$item_categories = $item->get_categories();
+				$post_tags 		 = $this->extract_tags($item_categories);
 
-			$custom_field_query = new WP_Query(array( 'meta_key' => RSS_ID_CUSTOM_FIELD, 'meta_value' => $item_id ));
+				$custom_field_query = new WP_Query(array( 'meta_key' => RSS_ID_CUSTOM_FIELD, 'meta_value' => $item_id ));
 
-			if($custom_field_query->have_posts()){
-				$post = $custom_field_query->next_post();
+				if($custom_field_query->have_posts()){
+					$post = $custom_field_query->next_post();
 
-				if (strtotime( $post->post_modified ) < strtotime( $item_pub_date )) {
-					$post->post_content 	= $item->get_description(false);
-					$post->post_title 		= $item->get_title();
-					$post->post_modified 	= $item_pub_date;
+					if (strtotime( $post->post_modified ) < strtotime( $item_pub_date )) {
+						$post->post_content  = $item->get_description(false);
+						$post->post_title 	 = $item->get_title();
+						$post->post_modified = $item_pub_date;
 
-					wp_update_post( $post );
-				}
+						$updated_post_id = wp_update_post( $post );
 
-			} else {
-
-				/*$post_category_IDs = array();
-
-				foreach ($item_categories as $category) {
-					
-					$cat_id = get_cat_ID($category->get_term());
-
-					if($cat_id != 0){
-						array_push($post_category_IDs, $cat_id);
-					} else {
-						$cat_id = wp_insert_term( $category->get_term(), 'category' );
-
-						array_push($post_category_IDs, $cat_id);
+						if($updated_post_id != 0){
+							wp_set_object_terms( $updated_post_id, $post_cat_id, 'category', false );
+							wp_set_post_tags( $updated_post_id, $post_tags, false );
+						}
 					}
 
-				}*/
+				} else {
 
-				$post_category_tags = array();
+					$post = array(
+					  'post_content' => $item->get_description(false), // The full text of the post.
+					  'post_title'   => $item->get_title(), // The title of the post.
+					  'post_status'  => 'publish',
+					  'post_date'    => $item_pub_date, // The time the post was made.
+					  'tags_input'	 => $post_tags
+					);
 
-				foreach ($item_categories as $category) {
-					
-					$raw_tag = $category->get_term();
+					$inserted_post_id = wp_insert_post( $post );
 
-					array_push($post_category_tags, str_replace(' ', '-', $raw_tag));
-
+					if($inserted_post_id != 0){
+						wp_set_object_terms( $inserted_post_id, $post_cat_id, 'category', false );
+						update_post_meta($inserted_post_id, RSS_ID_CUSTOM_FIELD, $item_id);
+					}
 				}
 
-				$post = array(
-				  'post_content'   => $item->get_description(false), // The full text of the post.
-				  'post_title'     => $item->get_title(), // The title of the post.
-				  'post_status'    => 'publish',
-				  'post_date'      => $item_pub_date, // The time the post was made.
-				  'tags_input'	   => $post_category_tags
-				);
+			endforeach;
+		endif;
 
-				$inserted_post_id = wp_insert_post( $post );
+	}
 
-				if($inserted_post_id != 0){
-					update_post_meta($inserted_post_id, RSS_ID_CUSTOM_FIELD, $item_id);
-				}
-			}
+	/**
+	*
+	*/
+	private function cat_id_by_name($cat_name){
 
-		endforeach;
+		$cat_id = get_cat_ID($cat_name);
+
+		if($cat_id == 0){
+			$cat_id = wp_insert_term( $cat_name, 'category' );
+		}
+
+		return $cat_id;
+	}
+
+	private function extract_tags($rss_item_cats){
+
+		$post_tags = array();
+
+		foreach ($rss_item_cats as $category) {
+
+			$raw_tag = $category->get_term();
+
+			array_push($post_tags, str_replace(' ', '-', $raw_tag));
+
+		}
+
+		return $post_tags;
 	}
 
 	/**

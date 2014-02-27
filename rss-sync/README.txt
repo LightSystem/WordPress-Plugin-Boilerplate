@@ -1,14 +1,13 @@
-=== @TODO: Plugin Name ===
-Contributors: (this should be a list of wordpress.org userids)
-Donate link: http://example.com/
-Tags: comments, spam
-Requires at least: 3.5.1
-Tested up to: 3.6
+=== WordPress Plugin RSS Synchronization ===
+Contributors: LightSystem
+Tags: RSS, plugin, wordpress
+Requires at least: 3.8
+Tested up to: 3.8.1
 Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Here is a short description of the plugin.  This should be no more than 150 characters.  No markup here.
+Use this plugin if you wish to read external RSS feeds into WordPress posts. The plugin is configurable letting you define what feeds to read and how often to read them.
 
 == Description ==
 
@@ -85,6 +84,10 @@ directory take precedence. For example, `/assets/screenshot-1.png` would win ove
 2. This is the second screen shot
 
 == Changelog ==
+
+= 0.4.0 =
+* Added automatic tagging of posts with RSS feed categories.
+* Posts categorized by the origin of the feed.
 
 = 0.3.0 =
 * Working version.
