@@ -326,7 +326,7 @@ class RSS_Sync {
 			$channel_title = $rss->get_title();
 			$post_cat_id   = $this->cat_id_by_name($channel_title);
 
-			$maxitems = $rss->get_item_quantity( 0 );
+			$maxitems = $rss->get_item_quantity( 5 );
 
 			// Build an array of all the items, starting with element 0 (first element).
 			$rss_items = $rss->get_items( 0, $maxitems );
@@ -340,7 +340,12 @@ class RSS_Sync {
 				$item_categories = $item->get_categories();
 				$post_tags 		 = $this->extract_tags($item_categories);
 
-				$processed_post_content = $this->process_image_tags($item->get_description(false));
+				$processed_post_content = $this->process_image_tags($item);
+				if( is_wp_error( $processed_post_content ) ){
+
+
+					$processed_post_content = $item->get_description(false);
+				}	
 
 				$custom_field_query = new WP_Query(array( 'meta_key' => RSS_ID_CUSTOM_FIELD, 'meta_value' => $item_id ));
 
@@ -419,49 +424,103 @@ class RSS_Sync {
 		return $post_tags;
 	}
 
-	private function process_image_tags($raw_post_content){
+	private function process_image_tags($rss_item){
+
+		$raw_post_content = $rss_item->get_description(false);
 
 		if(preg_match_all('/<img.+src=[\'"]([^\'"]+)[\'"].*>/i', $raw_post_content, $matches)){
 			$first_image = $matches [1] [0];
 		}
 
-		if (strpos($first_image,$_SERVER['HTTP_HOST'])===false){
+		write_log('FIRST IMAGE');
+		write_log($first_image);
 
-			//Fetch and Store the Image
-			$get = wp_remote_get( $first_image );
-			$type = wp_remote_retrieve_header( $get, 'content-type' );
-			$mirror = wp_upload_bits(rawurldecode(basename( $first_image )), null, wp_remote_retrieve_body( $get ) );
+		$upload = $this->fetch_remote_file($first_image, $rss_item);
 
-			//Attachment options
-			$attachment = array(
-				'post_title'=> basename( $first_image ),
-				'post_mime_type' => $type
-			);
+		if ( is_wp_error( $upload ) ){
+			write_log('UPLOAD');
+			write_log($upload);
 
-			// Add the image to your media library
-			$attach_id = wp_insert_attachment( $attachment, $mirror['file'] );
-			$attach_data = wp_generate_attachment_metadata( $attach_id, $first_image );
-			wp_update_attachment_metadata( $attach_id, $attach_data );
-
-			$processed_post_content = str_replace($first_image, $mirror['url'], $raw_post_content);
-
-			return $processed_post_content;
+			return $upload;
 		}
+			
 
-		return $raw_post_content;
+		$post_content = str_replace($first_image, $upload['url'], $raw_post_content);
+
+		return $post_content;
 	}
 
 	/**
-	 * NOTE:  Filters are points of execution in which WordPress modifies data
-	 *        before saving it or sending it to the browser.
+	 * Attempt to download a remote file attachment
 	 *
-	 *        Filters: http://codex.wordpress.org/Plugin_API#Filters
-	 *        Reference:  http://codex.wordpress.org/Plugin_API/Filter_Reference
-	 *
-	 * @since    1.0.0
+	 * @param string $url URL of item to fetch
+	 * @param array $postdata Attachment details
+	 * @return array|WP_Error Local file location details on success, WP_Error otherwise
 	 */
-	public function filter_method_name() {
-		// @TODO: Define your filter hook callback here
+	function fetch_remote_file( $url, $postdata ) {
+		
+		$post_date = date($postdata->get_date('Y-m-d H:i:s'));
+
+		// extract the file name and extension from the url
+		//TODO how to resolve the file type problem?
+		$file_name = rawurldecode(basename( $url )).$postdata->get_date('Y-m-d H:i:s').'.jpeg';
+
+		// get placeholder file in the upload dir with a unique, sanitized filename
+		$upload = wp_upload_bits( $file_name, 0, '', date($postdata->get_date('Y-m-d H:i:s')) );
+		if ( $upload['error'] )
+			return new WP_Error( 'upload_dir_error', $upload['error'] );
+
+		// fetch the remote url and write it to the placeholder file
+		$headers = wp_get_http( $url, $upload['file'] );
+
+		// request failed
+		if ( ! $headers ) {
+			@unlink( $upload['file'] );
+			return new WP_Error( 'import_file_error', __('Remote server did not respond', 'wordpress-importer') );
+		}
+
+		// make sure the fetch was successful
+		if ( $headers['response'] != '200' ) {
+			@unlink( $upload['file'] );
+			return new WP_Error( 'import_file_error', sprintf( __('Remote server returned error response %1$d %2$s', 'wordpress-importer'), esc_html($headers['response']), get_status_header_desc($headers['response']) ) );
+		}
+
+		$filesize = filesize( $upload['file'] );
+
+		if ( isset( $headers['content-length'] ) && $filesize != $headers['content-length'] ) {
+			@unlink( $upload['file'] );
+			return new WP_Error( 'import_file_error', __('Remote file is incorrect size', 'wordpress-importer') );
+		}
+
+		if ( 0 == $filesize ) {
+			@unlink( $upload['file'] );
+			return new WP_Error( 'import_file_error', __('Zero size file downloaded', 'wordpress-importer') );
+		}
+
+		$max_size = (int) $this->max_attachment_size();
+		if ( ! empty( $max_size ) && $filesize > $max_size ) {
+			@unlink( $upload['file'] );
+			return new WP_Error( 'import_file_error', sprintf(__('Remote file is too large, limit is %s', 'wordpress-importer'), size_format($max_size) ) );
+		}
+
+		// keep track of the old and new urls so we can substitute them later
+		$this->url_remap[$url] = $upload['url'];
+		//$this->url_remap[$post['guid']] = $upload['url'];
+		// keep track of the destination if the remote url is redirected somewhere else
+		if ( isset($headers['x-final-location']) && $headers['x-final-location'] != $url )
+			$this->url_remap[$headers['x-final-location']] = $upload['url'];
+
+		return $upload;
+	}
+
+	/**
+	 * Decide what the maximum file size for downloaded attachments is.
+	 * Default is 0 (unlimited), can be filtered via import_attachment_size_limit
+	 *
+	 * @return int Maximum attachment file size to import
+	 */
+	function max_attachment_size() {
+		return apply_filters( 'import_attachment_size_limit', 0 );
 	}
 
 }
