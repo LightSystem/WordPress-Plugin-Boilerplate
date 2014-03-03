@@ -1,14 +1,13 @@
-=== @TODO: Plugin Name ===
-Contributors: (this should be a list of wordpress.org userids)
-Donate link: http://example.com/
-Tags: comments, spam
-Requires at least: 3.5.1
-Tested up to: 3.6
+=== WordPress Plugin RSS Synchronization ===
+Contributors: LightSystem
+Tags: RSS, plugin, wordpress
+Requires at least: 3.8
+Tested up to: 3.8.1
 Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Here is a short description of the plugin.  This should be no more than 150 characters.  No markup here.
+Use this plugin if you wish to read external RSS feeds into WordPress posts. The plugin is configurable letting you define what feeds to read and how often to read them.
 
 == Description ==
 
@@ -86,12 +85,16 @@ directory take precedence. For example, `/assets/screenshot-1.png` would win ove
 
 == Changelog ==
 
-= 1.0 =
-* A change since the previous version.
-* Another change.
+= 0.4.0 =
+* Added automatic tagging of posts with RSS feed categories.
+* Posts categorized by the origin of the feed.
 
-= 0.5 =
-* List versions from most recent at top to oldest at bottom.
+= 0.3.0 =
+* Working version.
+* Added a configuration panel.
+
+= 0.2.0 =
+* Prototype.
 
 == Upgrade Notice ==
 
@@ -100,12 +103,6 @@ Upgrade notices describe the reason a user should upgrade.  No more than 300 cha
 
 = 0.5 =
 This version fixes a security related bug.  Upgrade immediately.
-
-== Arbitrary section ==
-
-You may provide arbitrary sections, in the same format as the ones above.  This may be of use for extremely complicated
-plugins where more information needs to be conveyed that doesn't fit into the categories of "description" or
-"installation."  Arbitrary sections will be shown below the built-in sections outlined above.
 
 == Updates ==
 

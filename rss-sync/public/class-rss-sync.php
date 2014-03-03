@@ -9,17 +9,17 @@
  */
 
 include_once( ABSPATH . WPINC . '/feed.php' );
+include_once( ABSPATH . 'wp-admin/includes/image.php' );
 
 /**
- * Plugin class. This class should ideally be used to work with the
+ * Plugin class. This class is used to work with the
  * public-facing side of the WordPress site.
  *
  * If you're interested in introducing administrative or dashboard
- * functionality, then refer to `class-plugin-name-admin.php`
+ * functionality, then refer to `class-rss-sync-admin.php`
  *
- * @TODO: Rename this class to a proper name for your plugin.
  *
- * @package Plugin_Name
+ * @package RSS-Sync
  * @author  João Horta Alves <joao.alves@log.pt>
  */
 class RSS_Sync {
@@ -31,7 +31,7 @@ class RSS_Sync {
 	 *
 	 * @var     string
 	 */
-	const VERSION = '0.2.0';
+	const VERSION = '0.4.0';
 
 	const RSS_ID_CUSTOM_FIELD = 'rss_id';
 
@@ -81,10 +81,7 @@ class RSS_Sync {
 		/* Define custom functionality.
 		 * Refer To http://codex.wordpress.org/Plugin_API#Hooks.2C_Actions_and_Filters
 		 */
-		//add_action( 'rss_sync_daily_event', array( $this, 'fetch_rss_daily' ) );
-		add_action( 'init', array( $this, 'fetch_rss_daily' ) );
-		//add_filter( '@TODO', array( $this, 'filter_method_name' ) );
-
+		add_action( 'rss_sync_event', array( $this, 'rss_sync_fetch' ) );
 	}
 
 	/**
@@ -239,18 +236,25 @@ class RSS_Sync {
 	 */
 	private static function single_activate() {
 		
-		wp_schedule_event( time(), 'daily', 'rss_sync_daily_event' );
+		$options = get_option( 'rss_sync' );
 
+		if($options)
+			$chosen_recurrence = $options['refresh'];
+
+		if($chosen_recurrence)
+			wp_schedule_event( time(), $chosen_recurrence, 'rss_sync_event' );
+		else
+			wp_schedule_event( time(), 'daily', 'rss_sync_event' );
 	}
 
 	/**
 	 * Fired for each blog when the plugin is deactivated.
 	 *
-	 * @since    1.0.0
+	 * @since    0.2.0
 	 */
 	private static function single_deactivate() {
 		
-		wp_clear_scheduled_hook( 'rss_sync_daily_event' );
+		wp_clear_scheduled_hook( 'rss_sync_event' );
 
 	}
 
@@ -288,62 +292,163 @@ class RSS_Sync {
 	}
 
 	/**
-	 * NOTE:  Actions are points in the execution of a page or process
-	 *        lifecycle that WordPress fires.
+	 * Does all the work of fetching specified RSS feeds, as well as create the associated posts.
 	 *
 	 *        Actions:    http://codex.wordpress.org/Plugin_API#Actions
 	 *        Reference:  http://codex.wordpress.org/Plugin_API/Action_Reference
 	 *
 	 * @since    0.2.0
 	 */
-	public function fetch_rss_daily() {
+	public function rss_sync_fetch() {
+
+		$options = get_option( 'rss_sync' );
+
+		$rss_feeds_to_fetch = explode("\n", $options['rss_feeds']);
+
+		if($rss_feeds_to_fetch){
+			foreach ($rss_feeds_to_fetch as $rss_feed) {
+				$this->handle_RSS_feed($rss_feed);
+			}
+		}
+	}
+
+	/**
+	* Fetch and process a single RSS feed.
+	*
+	* @since    0.3.0
+	*/
+	private function handle_RSS_feed($rss_feed){
+
 		// Get a SimplePie feed object from the specified feed source.
-		$rss = fetch_feed( 'http://www.eurogamer.net/?format=rss' );
+		$rss = fetch_feed( $rss_feed );
 
 		if ( ! is_wp_error( $rss ) ) : // Checks that the object is created correctly
+			$channel_title = $rss->get_title();
+			$post_cat_id   = $this->cat_id_by_name($channel_title);
+
 			$maxitems = $rss->get_item_quantity( 0 );
 
 			// Build an array of all the items, starting with element 0 (first element).
 			$rss_items = $rss->get_items( 0, $maxitems );
+
+			//Loop through each feed item and create a post with the associated information
+			foreach ( $rss_items as $item ) :
+
+				$item_id 	   = $item->get_id(false);
+				$item_pub_date = date($item->get_date('Y-m-d H:i:s'));
+
+				$item_categories = $item->get_categories();
+				$post_tags 		 = $this->extract_tags($item_categories);
+
+				$processed_post_content = $this->process_image_tags($item->get_description(false));
+
+				$custom_field_query = new WP_Query(array( 'meta_key' => RSS_ID_CUSTOM_FIELD, 'meta_value' => $item_id ));
+
+				if($custom_field_query->have_posts()){
+					$post = $custom_field_query->next_post();
+
+					if (strtotime( $post->post_modified ) < strtotime( $item_pub_date )) {
+						$post->post_content  = $item->get_description(false);
+						$post->post_title 	 = $item->get_title();
+						$post->post_modified = $item_pub_date;
+
+						$updated_post_id = wp_update_post( $post );
+
+						if($updated_post_id != 0){
+							wp_set_object_terms( $updated_post_id, $post_cat_id, 'category', false );
+							wp_set_post_tags( $updated_post_id, $post_tags, false );
+						}
+					}
+
+				} else {
+
+					$post = array(
+					  'post_content' => $processed_post_content, // The full text of the post.
+					  'post_title'   => $item->get_title(), // The title of the post.
+					  'post_status'  => 'publish',
+					  'post_date'    => $item_pub_date, // The time the post was made.
+					  'tags_input'	 => $post_tags
+					);
+
+					$inserted_post_id = wp_insert_post( $post );
+
+					if($inserted_post_id != 0){
+						wp_set_object_terms( $inserted_post_id, $post_cat_id, 'category', false );
+						update_post_meta($inserted_post_id, RSS_ID_CUSTOM_FIELD, $item_id);
+					}
+				}
+
+			endforeach;
 		endif;
 
-		//Loop through each feed item and create a post with the associated information
-		foreach ( $rss_items as $item ) :
+	}
 
-			$item_id 		= $item->get_id(false);
-			$item_pub_date 	= date($item->get_date('Y-m-d H:i:s'));
+	/**
+	* Handles creation and/or resolution of a category ID.	
+	*	
+	* @since    0.4.0
+	*/
+	private function cat_id_by_name($cat_name){
 
-			$custom_field_query = new WP_Query(array( 'meta_key' => RSS_ID_CUSTOM_FIELD, 'meta_value' => $item_id ));
+		$cat_id = get_cat_ID($cat_name);
 
-			if($custom_field_query->have_posts()){
-				$post = $custom_field_query->next_post();
+		if($cat_id == 0){
+			$cat_id = wp_insert_term( $cat_name, 'category' );
+		}
 
-				if (strtotime( $post->post_modified ) < strtotime( $item_pub_date )) {
-					$post->post_content 	= $item->get_description(false);
-					$post->post_title 		= $item->get_title();
-					$post->post_modified 	= $item_pub_date;
+		return $cat_id;
+	}
 
-					wp_update_post( $post );
-				}
+	/**
+	* Handles extraction of post tags from a list of RSS item categories. 
+	*
+	* @since    0.4.0
+	*/
+	private function extract_tags($rss_item_cats){
 
-			} else {
+		$post_tags = array();
 
-				$post = array(
-				  'post_content'   => $item->get_description(false), // The full text of the post.
-				  'post_title'     => $item->get_title(), // The title of your post.
-				  'post_status'    => 'publish',
-				  'post_date'      => $item_pub_date, // The time post was made.
-				  'post_category'  => array(39) // Default empty.
-				);
+		foreach ($rss_item_cats as $category) {
 
-				$inserted_post_id = wp_insert_post( $post );
+			$raw_tag = $category->get_term();
 
-				if($inserted_post_id != 0){
-					update_post_meta($inserted_post_id, RSS_ID_CUSTOM_FIELD, $item_id);
-				}
-			}
+			array_push($post_tags, str_replace(' ', '-', $raw_tag));
 
-		endforeach;
+		}
+
+		return $post_tags;
+	}
+
+	private function process_image_tags($raw_post_content){
+
+		if(preg_match_all('/<img.+src=[\'"]([^\'"]+)[\'"].*>/i', $raw_post_content, $matches)){
+			$first_image = $matches [1] [0];
+		}
+
+		if (strpos($first_image,$_SERVER['HTTP_HOST'])===false){
+
+			//Fetch and Store the Image
+			$get = wp_remote_get( $first_image );
+			$type = wp_remote_retrieve_header( $get, 'content-type' );
+			$mirror = wp_upload_bits(rawurldecode(basename( $first_image )), null, wp_remote_retrieve_body( $get ) );
+
+			//Attachment options
+			$attachment = array(
+				'post_title'=> basename( $first_image ),
+				'post_mime_type' => $type
+			);
+
+			// Add the image to your media library
+			$attach_id = wp_insert_attachment( $attachment, $mirror['file'] );
+			$attach_data = wp_generate_attachment_metadata( $attach_id, $first_image );
+			wp_update_attachment_metadata( $attach_id, $attach_data );
+
+			$processed_post_content = str_replace($first_image, $mirror['url'], $raw_post_content);
+
+			return $processed_post_content;
+		}
+
+		return $raw_post_content;
 	}
 
 	/**
