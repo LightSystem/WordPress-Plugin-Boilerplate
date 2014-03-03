@@ -18,24 +18,23 @@ class RSS_Sync_AdminSettings
 {
     static function admin_init ()
     {
-        // $options = get_option('ezimut_app');
 
-        register_setting( 'rss_sync', 'rss_sync', array( 'RSS_Sync_AdminSettings', 'app_options_validator' ) );
+        register_setting( 'rss_sync', 'rss_sync', array( 'RSS_Sync_AdminSettings', 'options_validator' ) );
         
         add_settings_section( 'rss_sync_options',
             __( 'General', 'rss-sync' ),
-            array( 'RSS_Sync_AdminSettings', 'app_options' ),
+            array( 'RSS_Sync_AdminSettings', 'rss_options' ),
             'rss_sync' );
             
         add_settings_field( 'rss_sync_rss_feeds',
             __( 'RSS Feeds', 'rss-sync' ),
-            array( 'RSS_Sync_AdminSettings', 'app_rss_feeds' ),
+            array( 'RSS_Sync_AdminSettings', 'rss_feeds' ),
             'rss_sync',
             'rss_sync_options' );
        
        	add_settings_field( 'rss-sync-refresh',
        		__('Refresh Feed', 'rss-sync'),
-       		array('RSS_Sync_AdminSettings', 'app_rss_refresh'),
+       		array('RSS_Sync_AdminSettings', 'rss_sync_refresh'),
        		'rss_sync',
             'rss_sync_options' );
     }
@@ -57,12 +56,12 @@ class RSS_Sync_AdminSettings
         <?php
     }
 
-    function app_options ()
+    function rss_options ()
     {
         echo '<p>'; _e( 'General settings for the RSS Sync Plugin.', 'rss-sync' ); echo '</p>';
     }
     
-    function app_rss_feeds ()
+    function rss_feeds ()
     {
         $options = get_option( 'rss_sync' );
         
@@ -74,7 +73,7 @@ class RSS_Sync_AdminSettings
         <?php
     }
 
-    function app_rss_refresh()
+    function rss_sync_refresh()
     {
     	$options = get_option( 'rss_sync' );
     	$prev_chosen_recurrence = $options['refresh'];
@@ -96,7 +95,7 @@ class RSS_Sync_AdminSettings
         <?php
     }
     
-    static function app_options_validator ( $options )
+    static function options_validator ( $options )
     {
         $existing = get_option( 'rss_sync' );
 
@@ -109,7 +108,6 @@ class RSS_Sync_AdminSettings
 
         	wp_schedule_event( time(), $options['refresh'], 'rss_sync_event' );
         }
-
 
         return array_merge( $existing, $options );
     }

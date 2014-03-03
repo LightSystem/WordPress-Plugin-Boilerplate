@@ -9,6 +9,7 @@
  */
 
 include_once( ABSPATH . WPINC . '/feed.php' );
+include_once( ABSPATH . 'wp-admin/includes/image.php' );
 
 /**
  * Plugin class. This class is used to work with the
@@ -325,6 +326,7 @@ class RSS_Sync {
 
 		if ( ! is_wp_error( $rss ) ) : // Checks that the object is created correctly
 			$channel_title = $rss->get_title();
+			$post_cat_id   = $this->cat_id_by_name($channel_title);
 
 			$maxitems = $rss->get_item_quantity( 0 );
 
@@ -337,9 +339,10 @@ class RSS_Sync {
 				$item_id 	   = $item->get_id(false);
 				$item_pub_date = date($item->get_date('Y-m-d H:i:s'));
 
-				$post_cat_id 	 = $this->cat_id_by_name($channel_title);
 				$item_categories = $item->get_categories();
 				$post_tags 		 = $this->extract_tags($item_categories);
+
+				$processed_post_content = $this->process_image_tags($item->get_description(false));
 
 				$custom_field_query = new WP_Query(array( 'meta_key' => RSS_ID_CUSTOM_FIELD, 'meta_value' => $item_id ));
 
@@ -362,7 +365,7 @@ class RSS_Sync {
 				} else {
 
 					$post = array(
-					  'post_content' => $item->get_description(false), // The full text of the post.
+					  'post_content' => $processed_post_content, // The full text of the post.
 					  'post_title'   => $item->get_title(), // The title of the post.
 					  'post_status'  => 'publish',
 					  'post_date'    => $item_pub_date, // The time the post was made.
@@ -383,7 +386,9 @@ class RSS_Sync {
 	}
 
 	/**
-	*
+	* Handles creation and/or resolution of a category ID.	
+	*	
+	* @since    0.4.0
 	*/
 	private function cat_id_by_name($cat_name){
 
@@ -396,6 +401,11 @@ class RSS_Sync {
 		return $cat_id;
 	}
 
+	/**
+	* Handles extraction of post tags from a list of RSS item categories. 
+	*
+	* @since    0.4.0
+	*/
 	private function extract_tags($rss_item_cats){
 
 		$post_tags = array();
@@ -409,6 +419,38 @@ class RSS_Sync {
 		}
 
 		return $post_tags;
+	}
+
+	private function process_image_tags($raw_post_content){
+
+		if(preg_match_all('/<img.+src=[\'"]([^\'"]+)[\'"].*>/i', $raw_post_content, $matches)){
+			$first_image = $matches [1] [0];
+		}
+
+		if (strpos($first_image,$_SERVER['HTTP_HOST'])===false){
+
+			//Fetch and Store the Image
+			$get = wp_remote_get( $first_image );
+			$type = wp_remote_retrieve_header( $get, 'content-type' );
+			$mirror = wp_upload_bits(rawurldecode(basename( $first_image )), null, wp_remote_retrieve_body( $get ) );
+
+			//Attachment options
+			$attachment = array(
+				'post_title'=> basename( $first_image ),
+				'post_mime_type' => $type
+			);
+
+			// Add the image to your media library
+			$attach_id = wp_insert_attachment( $attachment, $mirror['file'] );
+			$attach_data = wp_generate_attachment_metadata( $attach_id, $first_image );
+			wp_update_attachment_metadata( $attach_id, $attach_data );
+
+			$processed_post_content = str_replace($first_image, $mirror['url'], $raw_post_content);
+
+			return $processed_post_content;
+		}
+
+		return $raw_post_content;
 	}
 
 	/**
