@@ -330,7 +330,7 @@ class RSS_Sync {
 			$channel_title = $rss->get_title();
 			$post_cat_id   = $this->cat_id_by_name($channel_title);
 
-			$maxitems = $rss->get_item_quantity( 5 );
+			$maxitems = $rss->get_item_quantity( 0 );
 
 			// Build an array of all the items, starting with element 0 (first element).
 			$rss_items = $rss->get_items( 0, $maxitems );

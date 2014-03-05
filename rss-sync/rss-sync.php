@@ -1,9 +1,8 @@
 <?php
 /**
- * The WordPress Plugin Boilerplate.
+ * WordPress Plugin RSS Synchronization
  *
- * A foundation off of which to build well-documented WordPress plugins that
- * also follow WordPress Coding Standards and PHP best practices.
+ * A plugin for reading and synchronizing external RSS feeds right into your Wordpress site.
  *
  * @package   RSS-Sync
  * @author    João Horta Alves <joao.alves@log.pt>
@@ -13,7 +12,7 @@
  * @wordpress-plugin
  * Plugin Name:       RSS Sync
  * Description:       Synchronize posts with external RSS feed.
- * Version:           0.4.0
+ * Version:           0.5.0
  * Author:            Horta
  * Text Domain:       rss-sync
  * License:           GPL-2.0+
