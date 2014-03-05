@@ -12,8 +12,6 @@
  * Plugin class. This class should ideally be used to work with the
  * administrative side of the WordPress site.
  *
- * @TODO: Rename this class to a proper name for your plugin.
- *
  * @package RSS-Sync-Admin
  * @author  João Horta Alves <joao.alves@log.pt>
  */
@@ -47,11 +45,6 @@ class RSS_Sync_Admin {
 
 		/*
 		 * Call $plugin_slug from public plugin class.
-		 *
-		 * @TODO:
-		 *
-		 * - Rename "Plugin_Name" to the name of your initial plugin class
-		 *
 		 */
 		$plugin = RSS_Sync::get_instance();
 		$this->plugin_slug = $plugin->get_plugin_slug();
@@ -91,9 +84,7 @@ class RSS_Sync_Admin {
 	public static function get_instance() {
 
 		/*
-		 * @TODO :
-		 *
-		 * - Uncomment following lines if the admin class should only be available for super admins
+		 * Uncomment following lines if the admin class should only be available for super admins
 		 */
 		/* if( ! is_super_admin() ) {
 			return;
@@ -210,32 +201,6 @@ class RSS_Sync_Admin {
 			$links
 		);
 
-	}
-
-	/**
-	 * NOTE:     Actions are points in the execution of a page or process
-	 *           lifecycle that WordPress fires.
-	 *
-	 *           Actions:    http://codex.wordpress.org/Plugin_API#Actions
-	 *           Reference:  http://codex.wordpress.org/Plugin_API/Action_Reference
-	 *
-	 * @since    1.0.0
-	 */
-	public function action_method_name() {
-		// @TODO: Define your action hook callback here
-	}
-
-	/**
-	 * NOTE:     Filters are points of execution in which WordPress modifies data
-	 *           before saving it or sending it to the browser.
-	 *
-	 *           Filters: http://codex.wordpress.org/Plugin_API#Filters
-	 *           Reference:  http://codex.wordpress.org/Plugin_API/Filter_Reference
-	 *
-	 * @since    1.0.0
-	 */
-	public function filter_method_name() {
-		// @TODO: Define your filter hook callback here
 	}
 
 }

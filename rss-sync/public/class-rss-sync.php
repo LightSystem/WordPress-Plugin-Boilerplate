@@ -31,12 +31,11 @@ class RSS_Sync {
 	 *
 	 * @var     string
 	 */
-	const VERSION = '0.4.0';
+	const VERSION = '0.5.0';
 
 	const RSS_ID_CUSTOM_FIELD = 'rss_id';
 
 	/**
-	 * @TODO - Rename "plugin-name" to the name your your plugin
 	 *
 	 * Unique identifier for your plugin.
 	 *
@@ -81,6 +80,9 @@ class RSS_Sync {
 		/* Define custom functionality.
 		 * Refer To http://codex.wordpress.org/Plugin_API#Hooks.2C_Actions_and_Filters
 		 */
+		// Set 1 hour caching for feeds
+		add_filter( 'wp_feed_cache_transient_lifetime', function ($seconds){ return 3600; } );
+
 		add_action( 'rss_sync_event', array( $this, 'rss_sync_fetch' ) );
 	}
 
@@ -238,13 +240,15 @@ class RSS_Sync {
 		
 		$options = get_option( 'rss_sync' );
 
-		if($options)
+		if($options){
 			$chosen_recurrence = $options['refresh'];
+                }
 
-		if($chosen_recurrence)
+		if($chosen_recurrence){
 			wp_schedule_event( time(), $chosen_recurrence, 'rss_sync_event' );
-		else
+                } else {
 			wp_schedule_event( time(), 'daily', 'rss_sync_event' );
+                }
 	}
 
 	/**
@@ -340,13 +344,6 @@ class RSS_Sync {
 				$item_categories = $item->get_categories();
 				$post_tags 		 = $this->extract_tags($item_categories);
 
-				$processed_post_content = $this->process_image_tags($item);
-				if( is_wp_error( $processed_post_content ) ){
-
-
-					$processed_post_content = $item->get_description(false);
-				}	
-
 				$custom_field_query = new WP_Query(array( 'meta_key' => RSS_ID_CUSTOM_FIELD, 'meta_value' => $item_id ));
 
 				if($custom_field_query->have_posts()){
@@ -362,13 +359,28 @@ class RSS_Sync {
 						if($updated_post_id != 0){
 							wp_set_object_terms( $updated_post_id, $post_cat_id, 'category', false );
 							wp_set_post_tags( $updated_post_id, $post_tags, false );
+
+							if($this->is_image_import()){
+								//Image importing routines
+								$post_data = array(
+									'post_content' => $post->post_content,
+									'post_date' => $post->post_modified
+								);
+
+								$processed_post_content = $this->process_image_tags($post_data, $updated_post_id);
+
+								//Update post content
+								if(!is_wp_error( $processed_post_content )){
+									$this->update_post_content($processed_post_content, $updated_post_id);
+								}
+							}
 						}
 					}
 
 				} else {
 
 					$post = array(
-					  'post_content' => $processed_post_content, // The full text of the post.
+					  'post_content' => $item->get_description(false), // The full text of the post.
 					  'post_title'   => $item->get_title(), // The title of the post.
 					  'post_status'  => 'publish',
 					  'post_date'    => $item_pub_date, // The time the post was made.
@@ -380,12 +392,37 @@ class RSS_Sync {
 					if($inserted_post_id != 0){
 						wp_set_object_terms( $inserted_post_id, $post_cat_id, 'category', false );
 						update_post_meta($inserted_post_id, RSS_ID_CUSTOM_FIELD, $item_id);
+
+						if($this->is_image_import()){
+							//Import images to media library
+							$processed_post_content = $this->process_image_tags($post, $inserted_post_id);
+
+							//Update post content
+							if( !is_wp_error( $processed_post_content ) ){
+								$this->update_post_content($processed_post_content, $inserted_post_id);
+							}
+						}
 					}
 				}
 
 			endforeach;
 		endif;
 
+	}
+
+	private function is_image_import(){
+
+		$options = get_option( 'rss_sync' );
+
+		return $options['img_storage'] == 'local_storage';
+	}
+
+	private function update_post_content($post_content, $post_id){
+
+		$post = get_post( $post_id );
+		$post->post_content = $post_content;
+
+		return wp_update_post($post) != 0;
 	}
 
 	/**
@@ -424,51 +461,89 @@ class RSS_Sync {
 		return $post_tags;
 	}
 
-	private function process_image_tags($rss_item){
+	/**
+	* Parses text content, looking for image tags. Handles fetching external image if needed.
+	* Returns processed text with image tags now pointing to images locally stored.
+	*/
+	private function process_image_tags($post, $post_id){
 
-		$raw_post_content = $rss_item->get_description(false);
+		if(preg_match_all('/<img.+src=[\'"]([^\'"]+)[\'"].*>/i', $post['post_content'], $matches)){
+			$images_array = $matches [1];
 
-		if(preg_match_all('/<img.+src=[\'"]([^\'"]+)[\'"].*>/i', $raw_post_content, $matches)){
-			$first_image = $matches [1] [0];
+			foreach ($images_array as $image) {
+				$upload = $this->get_img_attachment($post_id, $image);
+
+				if(!$upload){
+					$upload = $this->fetch_remote_image($image, $post, $post_id);
+				}
+
+				if ( is_wp_error( $upload ) ){
+					write_log('UPLOAD');
+					write_log($upload);
+
+					return $upload;
+				}
+
+				$post_content = str_replace($image, $upload['url'], $post['post_content']);
+
+				return $post_content;
+			}
 		}
 
-		write_log('FIRST IMAGE');
-		write_log($first_image);
-
-		$upload = $this->fetch_remote_file($first_image, $rss_item);
-
-		if ( is_wp_error( $upload ) ){
-			write_log('UPLOAD');
-			write_log($upload);
-
-			return $upload;
-		}
-			
-
-		$post_content = str_replace($first_image, $upload['url'], $raw_post_content);
-
-		return $post_content;
+		return $post['post_content'];
 	}
 
 	/**
-	 * Attempt to download a remote file attachment
+	* Checks if image already exists in media library. Returns its URL if it does, returns false if it does not.
+	*/
+	function get_img_attachment($post_id, $external_img_url){
+
+		$attachments = new WP_Query( array( 'post_status' => 'any', 'post_type' => 'attachment', 'post_parent' => $post_id ) );
+
+		while($attachments->have_posts()){
+			$attachment = $attachments->next_post();
+
+			$metadata = wp_get_attachment_metadata($attachment->ID);
+
+			if($metadata['file'] == $external_img_url){
+				$upload = array(
+					'url' => wp_get_attachment_url( $attachment->ID )
+				);
+
+				return $upload;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Attempt to download a remote image attachment
 	 *
-	 * @param string $url URL of item to fetch
-	 * @param array $postdata Attachment details
+	 * @param string $url URL of image to fetch
+	 * @param array $postdata Data about the post te image belongs to
+	 * @param string ID of the post
 	 * @return array|WP_Error Local file location details on success, WP_Error otherwise
 	 */
-	function fetch_remote_file( $url, $postdata ) {
-		
-		$post_date = date($postdata->get_date('Y-m-d H:i:s'));
+	function fetch_remote_image( $url, $postdata, $post_id ) {
 
 		// extract the file name and extension from the url
-		//TODO how to resolve the file type problem?
-		$file_name = rawurldecode(basename( $url )).$postdata->get_date('Y-m-d H:i:s').'.jpeg';
+		$file_name = rawurldecode(basename( $url ));
 
 		// get placeholder file in the upload dir with a unique, sanitized filename
-		$upload = wp_upload_bits( $file_name, 0, '', date($postdata->get_date('Y-m-d H:i:s')) );
-		if ( $upload['error'] )
+		$upload = wp_upload_bits( $file_name, 0, '', $postdata['post_date'] );
+
+		//Append jpeg extension to file if Invalid file type error detected
+		if($upload['error'] == 'Invalid file type'){
+			//There must be some better way to do this
+			$file_name = $file_name . '.jpeg';
+
+			$upload = wp_upload_bits( $file_name, 0, '', $postdata['post_date'] );
+		}
+
+		if ( $upload['error'] ){
 			return new WP_Error( 'upload_dir_error', $upload['error'] );
+		}
 
 		// fetch the remote url and write it to the placeholder file
 		$headers = wp_get_http( $url, $upload['file'] );
@@ -507,8 +582,20 @@ class RSS_Sync {
 		$this->url_remap[$url] = $upload['url'];
 		//$this->url_remap[$post['guid']] = $upload['url'];
 		// keep track of the destination if the remote url is redirected somewhere else
-		if ( isset($headers['x-final-location']) && $headers['x-final-location'] != $url )
+		if ( isset($headers['x-final-location']) && $headers['x-final-location'] != $url ){
 			$this->url_remap[$headers['x-final-location']] = $upload['url'];
+                }
+                        
+		//add to media library
+		//Attachment options
+		$attachment = array(
+			'post_title'=> $file_name,
+			'post_mime_type' => $headers['content-type']
+		);
+
+		$attach_id = wp_insert_attachment( $attachment, $upload['file'], $post_id );
+		$attach_data = wp_generate_attachment_metadata( $attach_id, $url );
+		wp_update_attachment_metadata( $attach_id, $attach_data );
 
 		return $upload;
 	}

@@ -10,9 +10,6 @@
  * @license   GPL-2.0+
  * @copyright 2014 João Horta Alves
  */
-?>
-
-<?php
 
 class RSS_Sync_AdminSettings
 {
@@ -36,6 +33,12 @@ class RSS_Sync_AdminSettings
        		__('Refresh Feed', 'rss-sync'),
        		array('RSS_Sync_AdminSettings', 'rss_sync_refresh'),
        		'rss_sync',
+            'rss_sync_options' );
+
+        add_settings_field( 'rss_sync_img_storage', 
+            __('Image Storage', 'rss-sync'), 
+            array('RSS_Sync_AdminSettings', 'image_storage_options'), 
+            'rss_sync', 
             'rss_sync_options' );
     }
 
@@ -91,6 +94,25 @@ class RSS_Sync_AdminSettings
             </select>
             <br/>
             <label for="rss_sync_refresh"><?php _e( 'Default: Once Daily.', 'rss-sync' );?></label>
+        </fieldset>
+        <?php
+    }
+
+    function image_storage_options()
+    {
+        $options = get_option( 'rss_sync' );
+        $stored_option = $options['img_storage'];
+
+        ?><fieldset>
+            <legend class="screen-reader-text"><span><?php _e( 'Image Storage', 'rss-sync' ); ?></span></legend>
+            <select id="image_storage_options" name="rss_sync[img_storage]">
+                <option value="hotlinking" <?php if($stored_option == 'hotlinking') echo 'selected' ?> > <?php _e('Use hotlinking', 'rss-sync') ?> </option>
+                <option value="local_storage" <?php if($stored_option == 'local_storage') echo 'selected' ?> > <?php _e('Link to media gallery', 'rss-sync') ?> </option>
+            </select>
+            <br/>
+            <label for="image_storage_options">
+                <?php _e("Plugin uses hotlinking by default. To import RSS feed images to your media gallery select 'Link to media gallery'."); ?>
+            </label>
         </fieldset>
         <?php
     }
