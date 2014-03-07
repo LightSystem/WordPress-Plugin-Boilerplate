@@ -20,16 +20,12 @@ class RSS_Sync_Admin {
 	/**
 	 * Instance of this class.
 	 *
-	 * @since    0.3.0
-	 *
 	 * @var      object
 	 */
 	protected static $instance = null;
 
 	/**
 	 * Slug of the plugin screen.
-	 *
-	 * @since    0.3.0
 	 *
 	 * @var      string
 	 */

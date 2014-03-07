@@ -1,9 +1,9 @@
-=== WordPress Plugin RSS Synchronization ===
+=== RSS Synchronization ===
 Contributors: LightSystem
 Tags: RSS, plugin, wordpress
 Requires at least: 3.8
 Tested up to: 3.8.1
-Stable tag: 0.5.0
+Stable tag: 0.5.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -14,6 +14,8 @@ Use this plugin if you wish to read external RSS feeds into WordPress posts.
 The plugin is configurable letting you define what feeds to read and how often to read them. It also lets you decide whether you want to store the external images locally, inserting them into the media gallery, or otherwise simply hotlink them (that is the default).
 
 You will find these settings in your administration page on the Settings->RSS Settings sub-menu.
+
+Check out the [project on GitHub](https://github.com/LightSystem/WordPress-Plugin-RSS-Sync).
 
 == Installation ==
 
@@ -37,11 +39,14 @@ This section describes how to install the plugin and get it working.
 = Using FTP =
 
 1. Download `rss-sync.zip`
-2. Extract the `plugin-name` directory to your computer
-3. Upload the `plugin-name` directory to the `/wp-content/plugins/` directory
+2. Extract the `rss-sync` directory to your computer
+3. Upload the `rss-sync` directory to the `/wp-content/plugins/` directory
 4. Activate the plugin in the Plugin dashboard
 
 == Changelog ==
+
+= 0.5.1 =
+* Improved behaviour by instantly fetching feeds as soon as they are added in the settings.
 
 = 0.5.0 =
 * The plugin can now fetch external images and save them locally, inserting them into the media gallery.

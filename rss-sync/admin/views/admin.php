@@ -124,6 +124,13 @@ class RSS_Sync_AdminSettings
         if (!is_array( $existing ) || !is_array( $options ))
             return $options;
 
+        if($existing['rss_feeds'] != $options['rss_feeds']){
+            include_once( ABSPATH . 'wp-content/plugins/rss-sync/includes/class-rss-sync-tools.php' );
+            
+            $tools = RSS_Sync_Tools::get_instance();
+            $tools->rss_sync_fetch($options['rss_feeds']);
+        }
+
         if($existing['refresh'] != $options['refresh']){
 
         	wp_clear_scheduled_hook( 'rss_sync_event' );
