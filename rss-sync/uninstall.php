@@ -2,11 +2,11 @@
 /**
  * Fired when the plugin is uninstalled.
  *
- * @package   Plugin_Name
- * @author    Your Name <email@example.com>
+ * @package   RSS Synchronization
+ * @author    João Horta Alves <joao.alves@log.pt>
  * @license   GPL-2.0+
- * @link      http://example.com
- * @copyright 2014 Your Name or Company Name
+ * @link      https://github.com/LightSystem/WordPress-Plugin-RSS-Sync
+ * @copyright 2014 João Horta Alves
  */
 
 // If uninstall not called from WordPress, then exit
