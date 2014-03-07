@@ -56,7 +56,6 @@ class RSS_Sync_Tools {
 		}
 
 		if(is_string($raw_feeds_to_fetch)){
-			write_log('HERE!');
 			$rss_feeds_to_fetch = explode("\r\n", $raw_feeds_to_fetch);
 		}
 
@@ -346,6 +345,8 @@ class RSS_Sync_Tools {
 		$attach_id = wp_insert_attachment( $attachment, $upload['file'], $post_id );
 		$attach_data = wp_generate_attachment_metadata( $attach_id, $url );
 		wp_update_attachment_metadata( $attach_id, $attach_data );
+		//Set as featured image
+		set_post_thumbnail( $post_id, $attach_id );
 
 		return $upload;
 	}

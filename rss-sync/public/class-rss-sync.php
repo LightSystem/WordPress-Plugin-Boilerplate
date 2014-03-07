@@ -26,11 +26,9 @@ class RSS_Sync {
 	/**
 	 * Plugin version, used for cache-busting of style and script file references.
 	 *
-	 * @since   0.2.0
-	 *
 	 * @var     string
 	 */
-	const VERSION = '0.5.1';
+	const VERSION = '0.5.2';
 
 	const RSS_ID_CUSTOM_FIELD = 'rss_id';
 

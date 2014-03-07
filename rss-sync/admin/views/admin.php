@@ -111,7 +111,7 @@ class RSS_Sync_AdminSettings
             </select>
             <br/>
             <label for="image_storage_options">
-                <?php _e("Plugin uses hotlinking by default. To import RSS feed images to your media gallery select 'Link to media gallery'."); ?>
+                <?php _e("Note: For featured/thumbnail images to work in posts, choose 'Link to media gallery'"); ?>
             </label>
         </fieldset>
         <?php
@@ -126,7 +126,7 @@ class RSS_Sync_AdminSettings
 
         if($existing['rss_feeds'] != $options['rss_feeds']){
             include_once( ABSPATH . 'wp-content/plugins/rss-sync/includes/class-rss-sync-tools.php' );
-            
+
             $tools = RSS_Sync_Tools::get_instance();
             $tools->rss_sync_fetch($options['rss_feeds']);
         }
