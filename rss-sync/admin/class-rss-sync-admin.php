@@ -34,8 +34,6 @@ class RSS_Sync_Admin {
 	/**
 	 * Initialize the plugin by loading admin scripts & styles and adding a
 	 * settings page and menu.
-	 *
-	 * @since     0.3.0
 	 */
 	private function __construct() {
 
@@ -73,8 +71,6 @@ class RSS_Sync_Admin {
 	/**
 	 * Return an instance of this class.
 	 *
-	 * @since     1.0.0
-	 *
 	 * @return    object    A single instance of this class.
 	 */
 	public static function get_instance() {
@@ -97,9 +93,6 @@ class RSS_Sync_Admin {
 	/**
 	 * Register and enqueue admin-specific style sheet.
 	 *
-	 *
-	 * @since     0.3.0
-	 *
 	 * @return    null    Return early if no settings page is registered.
 	 */
 	public function enqueue_admin_styles() {
@@ -117,8 +110,6 @@ class RSS_Sync_Admin {
 
 	/**
 	 * Register and enqueue admin-specific JavaScript.
-	 *
-	 * @since     0.3.0
 	 *
 	 * @return    null    Return early if no settings page is registered.
 	 */
@@ -138,7 +129,6 @@ class RSS_Sync_Admin {
 	/**
 	 * Register settings for use with this plugin.
 	 *
-	 * @since    0.3.0
 	 */
 	public function register_settings_admin_init() {
 		include_once( 'views/admin.php' );
@@ -149,7 +139,6 @@ class RSS_Sync_Admin {
 	/**
 	 * Register the administration menu for this plugin into the WordPress Dashboard menu.
 	 *
-	 * @since    0.3.0
 	 */
 	public function add_plugin_admin_menu() {
 
@@ -158,9 +147,9 @@ class RSS_Sync_Admin {
 		 *
 		 * NOTE:  Alternative menu locations are available via WordPress administration menu functions.
 		 *
-		 *        Administration Menus: http://codex.wordpress.org/Administration_Menus
+		 * Administration Menus: http://codex.wordpress.org/Administration_Menus
 		 *
-		 *   For reference: http://codex.wordpress.org/Roles_and_Capabilities
+		 * For reference: http://codex.wordpress.org/Roles_and_Capabilities
 		 */
 		$this->plugin_screen_hook_suffix = add_options_page(
 			__( 'RSS Sync Settings', $this->plugin_slug ),
@@ -168,25 +157,23 @@ class RSS_Sync_Admin {
 			'manage_options',
 			$this->plugin_slug,
 			array( $this, 'display_plugin_admin_page' )
-		);		
+		);
 
 	}
 
 	/**
 	 * Render the settings page for this plugin.
 	 *
-	 * @since    0.3.0
 	 */
 	public function display_plugin_admin_page() {
 		include_once( 'views/admin.php' );
-		
+
 		RSS_Sync_AdminSettings::rss_sync_app_page();
 	}
 
 	/**
 	 * Add settings action link to the plugins page.
 	 *
-	 * @since    1.0.0
 	 */
 	public function add_action_links( $links ) {
 

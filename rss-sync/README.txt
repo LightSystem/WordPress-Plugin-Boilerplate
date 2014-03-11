@@ -1,9 +1,9 @@
-=== RSS Synchronization ===
+=== RSS Synchronisation ===
 Contributors: LightSystem
 Tags: RSS, plugin, wordpress
 Requires at least: 3.8
 Tested up to: 3.8.1
-Stable tag: 0.5.2
+Stable tag: 0.5.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -44,6 +44,9 @@ This section describes how to install the plugin and get it working.
 4. Activate the plugin in the Plugin dashboard
 
 == Changelog ==
+
+= 0.5.3 =
+* Added option for toggling using thumbnails.
 
 = 0.5.2 =
 * Added support to thumbnail/featured images in posts when 'Link to media gallery' is selected in the settings.

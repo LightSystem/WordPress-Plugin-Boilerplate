@@ -12,8 +12,8 @@
  * @wordpress-plugin
  * Plugin Name:       RSS Sync
  * Description:       Synchronize posts with external RSS feed.
- * Version:           0.5.2
- * Author:            Horta
+ * Version:           0.5.3
+ * Author:            lightsystem, log_oscon
  * Text Domain:       rss-sync
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt

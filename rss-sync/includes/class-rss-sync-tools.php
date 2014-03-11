@@ -12,13 +12,13 @@ include_once( ABSPATH . WPINC . '/feed.php' );
 include_once( ABSPATH . 'wp-admin/includes/image.php' );
 
 /**
- * Utility class for alot of this plugin's useful methods used throughout the plugin code. 
+ * Utility class for alot of this plugin's useful methods used throughout the plugin code.
  *
  * @package   RSS-Sync-Tools
  * @author    João Horta Alves <joao.alves@log.pt>
  */
 class RSS_Sync_Tools {
-	
+
 	/**
 	 * Instance of this class.
 	 *
@@ -176,8 +176,8 @@ class RSS_Sync_Tools {
 	}
 
 	/**
-	* Handles creation and/or resolution of a category ID.	
-	*	
+	* Handles creation and/or resolution of a category ID.
+	*
 	* @since    0.4.0
 	*/
 	private function cat_id_by_name($cat_name){
@@ -192,7 +192,7 @@ class RSS_Sync_Tools {
 	}
 
 	/**
-	* Handles extraction of post tags from a list of RSS item categories. 
+	* Handles extraction of post tags from a list of RSS item categories.
 	*
 	*/
 	private function extract_tags($rss_item_cats){
@@ -334,7 +334,7 @@ class RSS_Sync_Tools {
 		if ( isset($headers['x-final-location']) && $headers['x-final-location'] != $url ){
 			$this->url_remap[$headers['x-final-location']] = $upload['url'];
                 }
-                        
+
 		//add to media library
 		//Attachment options
 		$attachment = array(
@@ -345,8 +345,11 @@ class RSS_Sync_Tools {
 		$attach_id = wp_insert_attachment( $attachment, $upload['file'], $post_id );
 		$attach_data = wp_generate_attachment_metadata( $attach_id, $url );
 		wp_update_attachment_metadata( $attach_id, $attach_data );
-		//Set as featured image
-		set_post_thumbnail( $post_id, $attach_id );
+		//Set as featured image?
+        $options = get_option( 'rss_sync' );
+        if($options['img_thumbnail'] == 'yes'){
+            set_post_thumbnail( $post_id, $attach_id );
+        }
 
 		return $upload;
 	}

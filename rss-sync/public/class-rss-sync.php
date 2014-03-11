@@ -28,7 +28,7 @@ class RSS_Sync {
 	 *
 	 * @var     string
 	 */
-	const VERSION = '0.5.2';
+	const VERSION = '0.5.3';
 
 	const RSS_ID_CUSTOM_FIELD = 'rss_id';
 
@@ -215,10 +215,9 @@ class RSS_Sync {
 	/**
 	 * Fired for each blog when the plugin is activated.
 	 *
-	 * @since    0.2.0
 	 */
 	private static function single_activate() {
-		
+
 		$options = get_option( 'rss_sync' );
 
 		if($options){
@@ -235,18 +234,15 @@ class RSS_Sync {
 	/**
 	 * Fired for each blog when the plugin is deactivated.
 	 *
-	 * @since    0.2.0
 	 */
 	private static function single_deactivate() {
-		
-		wp_clear_scheduled_hook( 'rss_sync_event' );
 
+		wp_clear_scheduled_hook( 'rss_sync_event' );
 	}
 
 	/**
 	 * Load the plugin text domain for translation.
 	 *
-	 * @since    1.0.0
 	 */
 	public function load_plugin_textdomain() {
 
@@ -261,7 +257,6 @@ class RSS_Sync {
 	/**
 	 * Register and enqueue public-facing style sheet.
 	 *
-	 * @since    1.0.0
 	 */
 	public function enqueue_styles() {
 		wp_enqueue_style( $this->plugin_slug . '-plugin-styles', plugins_url( 'assets/css/public.css', __FILE__ ), array(), self::VERSION );
@@ -270,10 +265,9 @@ class RSS_Sync {
 	/**
 	 * Register and enqueues public-facing JavaScript files.
 	 *
-	 * @since    1.0.0
 	 */
 	public function enqueue_scripts() {
-		wp_enqueue_script( $this->plugin_slug . '-plugin-script', plugins_url( 'assets/js/public.js', __FILE__ ), array( 'jquery' ), self::VERSION );
+		//wp_enqueue_script( $this->plugin_slug . '-plugin-script', plugins_url( 'assets/js/public.js', __FILE__ ), array( 'jquery' ), self::VERSION );
 	}
 
 }

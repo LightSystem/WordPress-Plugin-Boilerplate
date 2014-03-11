@@ -1,4 +1,4 @@
-# WordPress Plugin RSS Synchronization
+# WordPress Plugin RSS Synchronisation
 
 The WordPress Plugin RSS Sync is able to read external RSS feeds, process them, and insert the data into WP Posts.
 

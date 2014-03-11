@@ -17,32 +17,32 @@ class RSS_Sync_AdminSettings
     {
 
         register_setting( 'rss_sync', 'rss_sync', array( 'RSS_Sync_AdminSettings', 'options_validator' ) );
-        
+
         add_settings_section( 'rss_sync_options',
             __( 'General', 'rss-sync' ),
             array( 'RSS_Sync_AdminSettings', 'rss_options' ),
             'rss_sync' );
-            
+
         add_settings_field( 'rss_sync_rss_feeds',
             __( 'RSS Feeds', 'rss-sync' ),
             array( 'RSS_Sync_AdminSettings', 'rss_feeds' ),
             'rss_sync',
             'rss_sync_options' );
-       
+
        	add_settings_field( 'rss-sync-refresh',
        		__('Refresh Feed', 'rss-sync'),
        		array('RSS_Sync_AdminSettings', 'rss_sync_refresh'),
        		'rss_sync',
             'rss_sync_options' );
 
-        add_settings_field( 'rss_sync_img_storage', 
-            __('Image Storage', 'rss-sync'), 
-            array('RSS_Sync_AdminSettings', 'image_storage_options'), 
-            'rss_sync', 
+        add_settings_field( 'rss_sync_img_storage',
+            __('Image Storage', 'rss-sync'),
+            array('RSS_Sync_AdminSettings', 'image_storage_options'),
+            'rss_sync',
             'rss_sync_options' );
     }
 
-    /* BEGIN APP SETTINGS FORM CALLBACKS */    
+    /* BEGIN APP SETTINGS FORM CALLBACKS */
     static function rss_sync_app_page () {
         ?>
         <div class="wrap">
@@ -63,11 +63,11 @@ class RSS_Sync_AdminSettings
     {
         echo '<p>'; _e( 'General settings for the RSS Sync Plugin.', 'rss-sync' ); echo '</p>';
     }
-    
+
     function rss_feeds ()
     {
         $options = get_option( 'rss_sync' );
-        
+
         ?><fieldset>
             <legend class="screen-reader-text"><span><?php _e( 'RSS Feeds', 'rss-sync' ); ?></span></legend>
             <textarea id="rss_sync_rss_feeds" rows="10" cols="50" name="rss_sync[rss_feeds]"/><?php echo $options['rss_feeds'] ?></textarea><br/>
@@ -101,22 +101,32 @@ class RSS_Sync_AdminSettings
     function image_storage_options()
     {
         $options = get_option( 'rss_sync' );
-        $stored_option = $options['img_storage'];
+        $storage_option = $options['img_storage'];
+        $thumb_option = $options['img_thumbnail'];
 
         ?><fieldset>
             <legend class="screen-reader-text"><span><?php _e( 'Image Storage', 'rss-sync' ); ?></span></legend>
             <select id="image_storage_options" name="rss_sync[img_storage]">
-                <option value="hotlinking" <?php if($stored_option == 'hotlinking') echo 'selected' ?> > <?php _e('Use hotlinking', 'rss-sync') ?> </option>
-                <option value="local_storage" <?php if($stored_option == 'local_storage') echo 'selected' ?> > <?php _e('Link to media gallery', 'rss-sync') ?> </option>
+                <option value="hotlinking" <?php if($storage_option == 'hotlinking') echo 'selected' ?> > <?php _e('Use hotlinking', 'rss-sync') ?> </option>
+                <option value="local_storage" <?php if($storage_option == 'local_storage') echo 'selected' ?> > <?php _e('Link to media gallery', 'rss-sync') ?> </option>
             </select>
             <br/>
             <label for="image_storage_options">
                 <?php _e("Note: For featured/thumbnail images to work in posts, choose 'Link to media gallery'"); ?>
             </label>
+            <br/>
+            <p>
+                <div id="thumb_options_set">
+                <label>
+                    <?php _e( 'Use thumbnails?', 'rss-sync' ); ?>&nbsp;
+                    <input id="image_thumbnail_option" name="rss_sync[img_thumbnail]" type="checkbox" value="1" <?php checked( '1', $thumb_option ); ?> >
+                </label>
+                </div>
+            </p>
         </fieldset>
         <?php
     }
-    
+
     static function options_validator ( $options )
     {
         $existing = get_option( 'rss_sync' );
@@ -138,8 +148,12 @@ class RSS_Sync_AdminSettings
         	wp_schedule_event( time(), $options['refresh'], 'rss_sync_event' );
         }
 
+        //checkbox
+        if( 1 != $options['img_thumbnail'] )
+            unset($existing['img_thumbnail']);
+
         return array_merge( $existing, $options );
     }
-    
+
     /* END APP SETTINGS FORM CALLBACKS */
 }
