@@ -1,6 +1,9 @@
 jQuery(document).ready( function () {
 
-    if(jQuery('#image_storage_options').value == "hotlinking"){
+    console.log('JSJS');
+    console.log(jQuery('#image_storage_options'));
+
+    if(jQuery('#image_storage_options').val() == "hotlinking"){
         jQuery('#thumb_options_set').hide();
     }
 
