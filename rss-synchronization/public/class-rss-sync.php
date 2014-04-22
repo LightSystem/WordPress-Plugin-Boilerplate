@@ -30,8 +30,6 @@ class RSS_Sync {
 	 */
 	const VERSION = '0.5.3';
 
-	const RSS_ID_CUSTOM_FIELD = 'rss_id';
-
 	/**
 	 *
 	 * Unique identifier for your plugin.
@@ -69,9 +67,11 @@ class RSS_Sync {
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_styles' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 
+
 		/* Define custom functionality.
 		 * Refer To http://codex.wordpress.org/Plugin_API#Hooks.2C_Actions_and_Filters
 		 */
+        add_action('wp_head', array($this, 'feed_canonical'));
 		// Set 1 hour caching for feeds
 		add_filter( 'wp_feed_cache_transient_lifetime', function ($seconds){ return 3600; } );
 
@@ -269,5 +269,15 @@ class RSS_Sync {
 	public function enqueue_scripts() {
 		//wp_enqueue_script( $this->plugin_slug . '-plugin-script', plugins_url( 'assets/js/public.js', __FILE__ ), array( 'jquery' ), self::VERSION );
 	}
+
+    private function feed_canonical(){
+
+        if(is_single()){
+            $cur_post = $wp_query->post;
+
+            write_log($cur_post);
+        }
+
+    }
 
 }

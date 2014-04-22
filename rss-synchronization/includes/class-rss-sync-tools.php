@@ -19,6 +19,9 @@ include_once( ABSPATH . 'wp-admin/includes/image.php' );
  */
 class RSS_Sync_Tools {
 
+    const RSS_ID_CUSTOM_FIELD = 'rss_id';
+    const RSS_LINK_CUSTOM_FIELD = 'rss_link';
+
 	/**
 	 * Instance of this class.
 	 *
@@ -69,7 +72,6 @@ class RSS_Sync_Tools {
 	/**
 	* Fetch and process a single RSS feed.
 	*
-	* @since    0.3.0
 	*/
 	private function handle_RSS_feed($rss_feed){
 
@@ -88,11 +90,11 @@ class RSS_Sync_Tools {
 			//Loop through each feed item and create a post with the associated information
 			foreach ( $rss_items as $item ) :
 
-				$item_id 	   = $item->get_id(false);
+				$item_id 	  = $item->get_id(false);
 				$item_pub_date = date($item->get_date('Y-m-d H:i:s'));
 
 				$item_categories = $item->get_categories();
-				$post_tags 		 = $this->extract_tags($item_categories);
+				$post_tags 	  = $this->extract_tags($item_categories);
 
 				$custom_field_query = new WP_Query(array( 'meta_key' => RSS_ID_CUSTOM_FIELD, 'meta_value' => $item_id ));
 
@@ -134,7 +136,7 @@ class RSS_Sync_Tools {
 					  'post_title'   => $item->get_title(), // The title of the post.
 					  'post_status'  => 'publish',
 					  'post_date'    => $item_pub_date, // The time the post was made.
-					  'tags_input'	 => $post_tags
+					  'tags_input'   => $post_tags
 					);
 
 					$inserted_post_id = wp_insert_post( $post );
@@ -142,6 +144,10 @@ class RSS_Sync_Tools {
 					if($inserted_post_id != 0){
 						wp_set_object_terms( $inserted_post_id, $post_cat_id, 'category', false );
 						update_post_meta($inserted_post_id, RSS_ID_CUSTOM_FIELD, $item_id);
+                        //item meta-data
+                        $original_url = $item->get_permalink();
+                        if($original_url)
+                            update_post_meta($inserted_post_id, RSS_LINK_CUSTOM_FIELD, $original_url);
 
 						if($this->is_image_import()){
 							//Import images to media library
