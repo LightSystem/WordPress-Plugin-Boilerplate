@@ -8,7 +8,7 @@
  * @copyright 2014 João Horta Alves
  */
 
-include_once(ABSPATH . 'wp-content/plugins/rss-synchronization/includes/class-rss-sync-tools.php');
+include_once( plugin_dir_path( __FILE__ ) . '../includes/class-rss-sync-tools.php');
 
 /**
  * Plugin class. This class is used to work with the
